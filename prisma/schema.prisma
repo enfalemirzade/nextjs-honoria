@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum NoticeType {
+  FRIEND_REQUEST
+  SERVER_INVITE
+}
+
+model User {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  name       String    @unique
+  password   String
+  createdAt  DateTime  @default(now())
+  isOnline   Boolean   @default(false)
+  bio        String?
+  friendIds  String[]
+  servers    ServerMember[]
+  messages   Message[]
+  files      File[]
+  notices    Notice[]
+}
+
+model Notice {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  receiverId String    @db.ObjectId
+  senderId   String    @db.ObjectId
+  serverCode String?
+  sendedAt   DateTime  @default(now())
+  isAnswered Boolean   @default(false)
+  type       NoticeType 
+  sender     User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model ServerMember {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String     @db.ObjectId
+  serverId  String     @db.ObjectId
+  joinedAt  DateTime   @default(now())
+  isBanned  Boolean    @default(false)
+  role      Role       @default(MEMBER)
+  server    Server     @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Server {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  code      String     @unique
+  createdAt DateTime   @default(now())
+  ownerId   String     @db.ObjectId
+  isPrivate Boolean    @default(false)
+  members   ServerMember[]
+  messages  Message[]
+  folders   Folder[]
+  Log       Log[]
+}
+
+model Log {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  createdAt DateTime   @default(now())
+  serverId  String     @db.ObjectId
+  server    Server     @relation(fields: [serverId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  createdAt DateTime   @default(now())
+  senderId  String     @db.ObjectId
+  serverId  String     @db.ObjectId
+  sender    User       @relation(fields: [senderId], references: [id])
+  server    Server     @relation(fields: [serverId], references: [id], onDelete: Cascade)
+}
+
+model Folder {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String     @unique
+  serverId  String     @db.ObjectId
+  server    Server     @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  files     File[]
+}
+
+model File {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  gridId    String
+  name      String
+  type      String
+  size      Int
+  createdAt DateTime   @default(now())
+  senderId  String     @db.ObjectId
+  folderId  String     @db.ObjectId
+  sender    User       @relation(fields: [senderId], references: [id])
+  folder    Folder     @relation(fields: [folderId], references: [id], onDelete: Cascade)
+}
+
+model Blog {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  title      String
+  content    String
+  createdAt  DateTime  @default(now())
+}
